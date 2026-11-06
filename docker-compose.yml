@@ -1,23 +1,24 @@
 # Todo el stack: Postgres + API Go + Next.js. Un solo comando:
 #   docker compose up --build
 #
-# Credenciales de desarrollo local; en producción van por variables/secretos.
-# Postgres ocupa 5433 del host porque 5432 suele estar tomado por un
-# Postgres local; dentro de la red de compose es 5432 (servicio "postgres").
+# Los valores vienen del .env de la raíz (compose lo lee automáticamente);
+# copia .env.example si no existe. Nada está harcodeado aquí.
+
 services:
   postgres:
     image: postgres:17-alpine
     container_name: todo-db
     environment:
-      POSTGRES_USER: todo
-      POSTGRES_PASSWORD: todo
-      POSTGRES_DB: todos
+      POSTGRES_USER: ${POSTGRES_USER:-todo}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?define POSTGRES_PASSWORD en .env}
+      POSTGRES_DB: ${POSTGRES_DB:-todos}
     ports:
-      - "5433:5432"
+      # Solo para clientes GUI / debugging; la API no lo usa.
+      - "${POSTGRES_HOST_PORT:-5433}:5432"
     volumes:
       - todo-pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U todo -d todos"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-todo} -d ${POSTGRES_DB:-todos}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -28,8 +29,8 @@ services:
     environment:
       ADDR: ":8080"
       # Dentro de la red de compose se resuelve el servicio "postgres".
-      DATABASE_URL: postgres://todo:todo@postgres:5432/todos?sslmode=disable
-      FRONTEND_URL: http://localhost:3000
+      DATABASE_URL: postgres://${POSTGRES_USER:-todo}:${POSTGRES_PASSWORD:?define POSTGRES_PASSWORD en .env}@postgres:5432/${POSTGRES_DB:-todos}?sslmode=disable
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
     ports:
       - "8080:8080"
     depends_on:
@@ -37,12 +38,12 @@ services:
         condition: service_healthy
 
   web:
+    container_name: todo-web
     build:
       context: ./frontend
       args:
         # NEXT_PUBLIC_* se inyecta en build; el navegador habla con el host.
         NEXT_PUBLIC_API_URL: http://localhost:8080
-    container_name: todo-web
     ports:
       - "3000:3000"
     depends_on:
