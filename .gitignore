@@ -1,0 +1,27 @@
+# Go
+backend/bin/
+*.exe
+*.test
+*.out
+
+# Node
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/.env*.local
+
+# Env (secretos)
+.env
+*.env
+
+# IDE
+.vscode/
+.idea/
+
+# Herramientas durante la sesión
+.playwright-mcp/
+todo-ui.png
+
+# OS
+Thumbs.db
+.DS_Store

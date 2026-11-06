@@ -1,0 +1,52 @@
+# Todo el stack: Postgres + API Go + Next.js. Un solo comando:
+#   docker compose up --build
+#
+# Credenciales de desarrollo local; en producción van por variables/secretos.
+# Postgres ocupa 5433 del host porque 5432 suele estar tomado por un
+# Postgres local; dentro de la red de compose es 5432 (servicio "postgres").
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: todo-db
+    environment:
+      POSTGRES_USER: todo
+      POSTGRES_PASSWORD: todo
+      POSTGRES_DB: todos
+    ports:
+      - "5433:5432"
+    volumes:
+      - todo-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U todo -d todos"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build: ./backend
+    container_name: todo-api
+    environment:
+      ADDR: ":8080"
+      # Dentro de la red de compose se resuelve el servicio "postgres".
+      DATABASE_URL: postgres://todo:todo@postgres:5432/todos?sslmode=disable
+      FRONTEND_URL: http://localhost:3000
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  web:
+    build:
+      context: ./frontend
+      args:
+        # NEXT_PUBLIC_* se inyecta en build; el navegador habla con el host.
+        NEXT_PUBLIC_API_URL: http://localhost:8080
+    container_name: todo-web
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+
+volumes:
+  todo-pgdata:

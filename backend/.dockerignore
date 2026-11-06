@@ -1,0 +1,9 @@
+bin/
+.env
+.env.example
+*.env
+*.exe
+*.test
+*.out
+Dockerfile
+.dockerignore
